@@ -19,19 +19,27 @@ class EmailTest extends Page implements HasForms
 
     protected static string $view = 'filament.pages.email-test';
 
-    public ?string $contact = '';
+    public ?string $from = '';
+
+    public ?string $to = '';
 
     public function mount(): void
     {
-        $this->form->fill();
+        $this->form->fill([
+            'from' => config('mail.from.address'),
+            'to' => '',
+        ]);
     }
 
     public function form(Form $form): Form
     {
         return $form
             ->schema([
-                Components\TextInput::make('contact')
-                    ->label('Email Address')
+                Components\TextInput::make('from')
+                    ->label('Email From')
+                    ->required(),
+                Components\TextInput::make('to')
+                    ->label('Email To')
                     ->required(),
                 Components\Actions::make([
                     Components\Actions\Action::make('Send')
@@ -45,9 +53,11 @@ class EmailTest extends Page implements HasForms
     public function sendEmail(): void
     {
         try {
-            Mail::html('This is a test message.', function (Message $message) {
+            $form = $this->validate();
+            Mail::html('This is a test message.', function (Message $message) use ($form) {
                 $message->subject('Test Message');
-                $message->to($this->contact);
+                $message->from($form['from']);
+                $message->to($form['to']);
             });
         } catch (\GuzzleHttp\Exception\ClientException  $e) {
             dd([
